@@ -1,0 +1,16 @@
+body {
+    
+}
+
+div {
+    width: 160px;
+    border-style: solid;
+    display: inline-block;
+    border-width: 0.5px;
+    border-color: lightgray;
+    padding: 20px;
+}
+input{
+    padding: 10px;
+    background-color: lightgrey;
+}

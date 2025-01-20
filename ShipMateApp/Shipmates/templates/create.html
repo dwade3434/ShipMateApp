@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/styles.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            background-color: aliceblue;
+        }
+        form {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            grid-auto-rows: minmax(100px, auto);
+            grid-template-columns: fit-content(700px);
+        }
+
+        div {
+            width: 160px;
+            border-style: solid;
+            display: inline-block;
+            border-width: 0.5px;
+            border-color: lightgray;
+            padding: 20px;
+        }
+
+        optionbar {
+            border-style: solid;
+            display: inline-block;
+            border-width: 0.5px;
+            border-color: black;
+        }
+
+        menu {
+            float: left;
+            grid-column: 1/4;
+            grid-row: 1;
+            margin: 20px;
+        }
+
+
+        .additional {
+            float: left;
+            grid-column: 3/4;
+            grid-row: 1;
+            border-style: solid;
+            display: inline-block;
+            border-width: 0.5px;
+            border-color: black;
+            border-left: 5px solid gray;
+            padding: 50px;
+            height: 450px;
+            width: 350px;
+        }
+
+        .pickup {
+            float: left;
+            grid-column: 3/4;
+            grid-row: 2;
+            border-style: solid;
+            display: inline-block;
+            border-width: 0.5px;
+            border-color: black;
+            border-left: 5px solid green;
+            padding: 50px;
+            width: 350px;
+        }
+
+        .business {
+            grid-column: 3/4;
+            grid-row: 2;
+            border-style: solid;
+            display: inline-block;
+            border-width: 0.5px;
+            border-color: black;
+            border-left: 5px solid green;
+            padding: 50px;
+            width: 350px;
+        }
+
+        .shipping {
+            grid-column: 1/4;
+            grid-row: 1;
+            border-style: solid;
+            display: inline-block;
+            border-width: 0.5px;
+            border-color: black;
+            border-left: 5px solid gray;
+            padding: 20px;
+            width: 600px;
+        }
+
+        .delivery {
+            grid-column: 1/4;
+            grid-row: 2;
+            border-style: solid;
+            display: inline-block;
+            border-width: 0.5px;
+            border-color: black;
+            border-left: 5px solid gray;
+            padding: 20px;
+            width: 600px;
+        }
+
+        .packaging {
+            grid-column: 1/4;
+            grid-row: 3;
+            border-style: solid;
+            display: inline-block;
+            border-width: 0.5px;
+            border-color: black;
+            border-left: 5px solid gray;
+            padding: 10px;
+            width: 650px;
+        }
+
+        input {
+            padding: 10px;
+            background-color: lightgrey;
+        }
+
+        .price {
+            grid-column: 3/4;
+            grid-row: 3;
+            border-style: solid;
+            border-width: 0.5px;
+            border-color: black;
+            border-left: 5px solid green;
+            padding: 20px;
+            width: 350px;
+            height: 250px;
+        }
+        .button {
+            float: right;
+            width: 150px; 
+            height: 50px;
+            background-color: darkorange;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Ship Mates</h1>
+    <optionbar>
+        <h4>Options</h4>
+    </optionbar>
+    <p>{{ today }}</p>
+
+    <main>
+
+        <menu>
+            <div>
+                <a href="index.html">Home</a>
+            </div>
+            <br>
+            <div>
+                <a href="index.html">Create Shipment</a>
+            </div>
+            <br>
+            <div>
+                <a href="index.html">Tracking</a>
+            </div>
+            <br>
+            <div>
+                <a href="index.html">Reports</a>
+            </div>
+            <br>
+        </menu>
+        <form action="/create" method="POST">
+            <additional class="additional">
+                <h3>Service Details</h3>
+                <input type="text" name="shipdate" placeholder="Ship Date" size="30"><br><br>
+                <input type="text" name="lengthinput" placeholder="Service" size="30"><br><br>
+
+                <h4>Service Options</h4>
+                <input type="checkbox" name="signature" value="Signature">
+                <label for="signature">Signature Options</label><br><br>
+                <input type="checkbox" name="lengthinput" value="Hold">
+                <label for="lengthinput">Hold at location</label><br><br>
+
+                <h4>Additional Options</h4>
+                <input type="checkbox" name="addship" text="Add shipment references">
+                <label for="addship">Add shipment references</label><br><br>
+                <input type="checkbox" name="emailout" text="Email">
+                <label for="emailout">Email outbound shupment label</label><br><br>
+                <input type="checkbox" name="return" text="Include">
+                <label for="return">Include a return label</label><br><br>
+
+            </additional>
+
+            <shipping class="shipping">
+
+                <h3>Shipping Address</h3>
+                <input type="text" name="shipsname" placeholder="Name" size="30" required>
+                <input type="text" name="shipsregion" placeholder="Region" size="30"><br><br>
+                <input type="text" name="shipscompany" placeholder="Company" size="30">
+                <input type="text" name="shipstreet" placeholder="Address line 1" size="30" required><br><br>
+                <input type="text" name="shipsein" placeholder="Tax ID/EIN Number" size="30">
+                <input type="text" name="shipstreet2" placeholder="Address line 2" size="30"><br><br>
+                <input type="text" name="shipsphone" placeholder="Phone" size="30" required>
+                <input type="text" name="shipsstreet3" placeholder="Address line 3" size="30"><br><br>
+                <input type="text" name="shipsphoneext" placeholder="Phone Ext" size="30">
+                <input type="text" name="shipszipcode" placeholder="Postal code" size="30" required><br><br>
+                <input type="text" name="shipsemail" placeholder="Email" size="30">
+                <input type="text" name="shipscity" placeholder="City" size="30" required><br><br>
+                <input type="text" name="shipsstate" placeholder="State" size="30" required><br><br>
+            </shipping>
+
+            <delivery class="delivery">
+                <h3>Delivery Address</h3>
+                <input type="text" name="deliverysname" placeholder="Name" size="30" required>
+                <input type="text" name="deliverysregion" placeholder="Region" size="30"><br><br>
+                <input type="text" name="deliveryscompany" placeholder="Company" size="30">
+                <input type="text" name="deliverystreet" placeholder="Address line 1" size="30" required><br><br>
+                <input type="text" name="deliveryein" placeholder="Tax ID/EIN Number" size="30">
+                <input type="text" name="deliverystreet2" placeholder="Address line 2" size="30"><br><br>
+                <input type="text" name="deliverysphone" placeholder="Phone" size="30" required>
+                <input type="text" name="deliverysstreet3" placeholder="Address line 3" size="30"><br><br>
+                <input type="text" name="deliverysphoneext" placeholder="Phone Ext" size="30">
+                <input type="text" name="deliveryszipcode" placeholder="Postal code" size="30" required><br><br>
+                <input type="text" name="deliverysemail" placeholder="Email" size="30">
+                <input type="text" name="deliveryscity" placeholder="City" size="30" required><br><br>
+                <input type="text" name="deliverysstate" placeholder="State" size="30" required><br><br>
+            </delivery>
+
+
+
+
+
+            <pickup class="pickup">
+
+
+                <h4>Pickup/drop-off</h4>
+                <input type="text" name="shipdate" placeholder="Ship Date" size="30"><br><br>
+                <input type="radio" name="signature" value="Signature">
+                <label for="signature">Signature Options</label>
+                <input type="radio" name="lengthinput" value="Hold">
+                <label for="lengthinput">Hold at location</label>
+
+            </pickup>
+
+            <packaging class="packaging">
+                <h3>Packaging</h3>
+                <input type="text" name="packagecount" placeholder="Packages" size="30"><br><br>
+
+                <input type="checkbox" name="addship">
+                <label for="addship">Add shipment references</label><br><br>
+
+                <input type="text" name="packagecount" placeholder="Packages" size="3" required>
+
+                <input type="text" name="weight" placeholder="Weight" size="4">
+                <input type="text" name="weightlabel" size="2" required>
+                <input type="text" name="lengthinput" placeholder="L" size="3">
+                <label name="xmarker">X</label>
+                <input type="text" name="heightinput" placeholder="H" size="3">
+                <label name="xmarker1">X</label>
+                <input type="text" name="widthinput" placeholder="W" size="3">
+                <input type="text" name="dimensionlabel" size="2">
+            </packaging>
+
+            <price class="price">
+                <h3>Est. delivery price</h3><br><br>
+                <h3>Est. delivery date</h3><br><br>
+                <input class="button " type="submit" value="Finalize Shipment">
+            </price>
+            
+        </form>
+
+    </main>
+
+    
+
+
+    {% if distance %}
+    <h3>Distance: {{ distance }}</h3>
+    {% endif %}
+
+    {% if error %}
+    <p style="color:red;">{{ error }}</p>
+    {% endif %}
+</body>
+</html>
