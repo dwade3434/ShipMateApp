@@ -6,7 +6,20 @@ from fpdf import FPDF
 from datetime import datetime
 import os
 import uuid
+import pickle  # For saving to binary files
 from Shipmates import app
+import tensorflow as tf
+import pandas as pd
+import numpy as np
+import pathlib
+import glob
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import Ridge, LinearRegression
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import chardet
+from datetime import datetime, timedelta
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 
 # Database configuration
 DB_CONFIG = {
@@ -16,6 +29,41 @@ DB_CONFIG = {
     "host": "127.0.0.1",
     "port": "5432"
 }
+
+# Load and preprocess dataset for predictions
+file_path = '/Users/hotbo/source/repos/ShipMateApp/ShipMateApp/Shipmates/static/data/deliverytime/Delivery time.csv'
+data = pd.read_csv(file_path).dropna()
+X = data[['Miles', 'Issue Days', 'Packages', 'Shipper preparation Days', 'Delivery loading days']]
+y = data['Days']
+
+# Split and scale the data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Polynomial transformation
+poly_features = PolynomialFeatures(degree=1, include_bias=False)
+X_train_poly = poly_features.fit_transform(X_train_scaled)
+X_test_poly = poly_features.transform(X_test_scaled)
+
+# Train Ridge regression model
+ridge_model = Ridge(alpha=1.0)
+ridge_model.fit(X_train_poly, y_train)
+
+# Evaluate the model
+y_train_pred = ridge_model.predict(X_train_poly)
+y_test_pred = ridge_model.predict(X_test_poly)
+print("Training Set - MSE: {:.4f}, MAE: {:.4f}, R2 Score: {:.4f}".format(
+    mean_squared_error(y_train, y_train_pred),
+    mean_absolute_error(y_train, y_train_pred),
+    r2_score(y_train, y_train_pred),
+))
+print("Test Set - MSE: {:.4f}, MAE: {:.4f}, R2 Score: {:.4f}".format(
+    mean_squared_error(y_test, y_test_pred),
+    mean_absolute_error(y_test, y_test_pred),
+    r2_score(y_test, y_test_pred),
+))
 
 # Constants
 EARTH_RADIUS_MILES = 3959.87433
@@ -57,7 +105,7 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * asin(sqrt(a))
     return EARTH_RADIUS_MILES * c
 
-# Function to save shipment data to the database and return the tracking number
+# Function to save shipment data to the database
 def save_to_database(data):
     shiplat = str(data["ship_lat"])
     shiplon = str(data["ship_lon"])
@@ -69,7 +117,7 @@ def save_to_database(data):
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
-        # Insert into shipping and delivery tables
+        # Insert shipping and delivery data
         shipper = """
         INSERT INTO shipping (
             ship_name, ship_address, ship_city, ship_state, ship_zipcode, ship_phone, id
@@ -83,10 +131,10 @@ def save_to_database(data):
         tracker = """
         INSERT INTO tracking (
             ship_lat, ship_lon, delivery_lat, delivery_lon, distance, id
-        ) VALUES (%s, %s, %s, %s, %s, %s) RETURNING tracking_number
-        """  # Return the generated tracking number
+        ) VALUES (%s, %s, %s, %s, %s, %s)
+        """
 
-        # Insert into shipping and delivery tables
+        # Insert data into the shipping and delivery tables
         cursor.execute(shipper, (
             data["shipsname"], data["shipstreet"], data["shipscity"], data["shipsstate"], 
             data["shipszipcode"], data["shipsphone"], result
@@ -97,23 +145,29 @@ def save_to_database(data):
             data["deliveryszipcode"], data["deliverysphone"], result
         ))
 
-        # Insert into the tracking table and get the tracking number
+        # Insert data into the tracking table
         cursor.execute(tracker, (
             shiplat, shiplon, deliverylat, deliverylon, distance, result
         ))
-
-        # Fetch the tracking ID (tracking number)
-        tracking_number = cursor.fetchone()[0]  # Get the first column from the result
 
         conn.commit()
         cursor.close()
         conn.close()
 
         print("Data saved to database successfully.")
-        return tracking_number  # Return the tracking number
     except Exception as e:
         print(f"Database error: {e}")
-        return None
+
+# Function to save data to a binary file
+def save_to_binary_file(data, filename):
+    try:
+        # Open the binary file in write mode
+        with open(filename, 'wb') as file:
+            # Use pickle to serialize and write data to the file
+            pickle.dump(data, file)
+        print(f"Data has been written to {filename}")
+    except Exception as e:
+        print(f"Error saving data: {e}")
 
 # Function to generate a shipping label as a PDF
 def generate_shipping_label(data):
@@ -127,7 +181,7 @@ def generate_shipping_label(data):
     pdf.cell(50, 10, txt=f"{data['shipstreet']}", ln=True)
     pdf.cell(50, 10, txt=f"{data['shipscity']}, {data['shipsstate']} {data['shipszipcode']}", ln=True)
     pdf.cell(50, 10, txt=f"United States US", ln=True)
-    pdf.cell(200, 10, ln=True, border="B")
+    pdf.cell(200, 10, ln=True, border = "B")
     pdf.ln(10)
 
     # Delivery Details
@@ -139,7 +193,7 @@ def generate_shipping_label(data):
     pdf.cell(100, 10, txt=f"    {data['deliverysphone']}                   REF", ln=True)
     pdf.cell(100, 10, txt=f"    NV:", ln=True)
     pdf.cell(100, 10, txt=f"    PO:                                                     DEPT", ln=True)
-    pdf.cell(200, 10, ln=True, border="B")
+    pdf.cell(200, 10, ln=True, border = "B")
     pdf.ln(10)
 
     # Shipping barcode
@@ -151,15 +205,16 @@ def generate_shipping_label(data):
     pdf.image(image_path, x=10, y=141, w=100)
     pdf.image(image_path2, x=10, y=143, w=100, h=25)
     pdf.image(image_path3, x=140, y=155, w=25, h=25)
-    pdf.cell(200, 10, ln=True, border="B")
+    pdf.cell(200, 10, ln=True, border = "B")
 
     # Label barcode
     pdf.ln(10)
     pdf.set_font("Arial", size=20)
-    pdf.cell(200, 10, txt=f"TRK # {data['tracking_number']}", ln=True)
+    pdf.cell(200, 10, txt=f"TRK #", ln=True)
+    pdf.cell(100, 10, txt=f"      {data['predicted_days']}", ln=True)
     pdf.ln(10)
     pdf.set_font("Arial", size=54)
-    pdf.cell(200, 10, txt=f"1CN9NA", ln=True)
+    pdf.cell(200, 10, txt=f"1CESPA", ln=True)
     image_path4 = os.path.join(current_app.root_path, 'static', 'assets', 'deliver.png')
     pdf.image(image_path4, x=120, y=75, w=70, h=50)
     pdf.image(image_path, x=50, y=225, w=100)
@@ -186,7 +241,8 @@ def create():
             "deliveryscity": request.form.get("deliveryscity"),
             "deliverysstate": request.form.get("deliverysstate"),
             "deliveryszipcode": request.form.get("deliveryszipcode"),
-            "deliverysphone": request.form.get("deliverysphone")
+            "deliverysphone": request.form.get("deliverysphone"),
+            "packagecount": request.form.get("packagecount")
         }
 
         # Get coordinates for shipping and delivery addresses
@@ -204,14 +260,22 @@ def create():
         data["delivery_lat"] = delivery_lat
         data["delivery_lon"] = delivery_lon
 
-        # Save data to database and get the tracking number
-        tracking_number = save_to_database(data)
+        # Predict delivery days
+        new_input = pd.DataFrame([{
+            'Miles': data['distance'],
+            'Issue Days': 0,
+            'Packages': data['packagecount'],
+            'Shipper preparation Days': 1,
+            'Delivery loading days': 1,
+        }])
+        new_input_scaled = scaler.transform(new_input)
+        new_input_poly = poly_features.transform(new_input_scaled)
+        data['predicted_days'] = ridge_model.predict(new_input_poly)[0]
 
-        if not tracking_number:
-            return render_template("create.html", title="Create", error="Failed to generate tracking number.")
+        save_to_database(data)
 
-        # Add tracking number to data dictionary
-        data["tracking_number"] = tracking_number
+        # Save data to a binary file
+        save_to_binary_file(data, 'shipment_data.dat')
 
         # Generate and return the shipping label as a PDF
         pdf_data = generate_shipping_label(data)

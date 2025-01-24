@@ -1,0 +1,8 @@
+﻿Miles,Days,Issues,Issue Days,Packages,Shipper preparation Days,Delivery loading days,Shipper days of operation,Shipper hours of operation,Delivery pickup days,Delivery pickup times
+1,1,Sunny,0,0,1,1,Monday,8:00am - 6:00pm,Monday,12:30 pm
+201,2,Rain,0,21,2,2,Tuesday,8:00am - 6:00pm,Tuesday,12:30 pm
+401,3,Snow,1,41,3,3,Wednesday,8:00am - 6:00pm,Wednesday,12:30 pm
+601,5,Hurricane,4,61,6,3,Thursday,8:00am - 6:00pm,Thursday,12:30 pm
+801,6,Earthquake,1,81,8,4,Friday,8:00am - 6:00pm,Friday,12:30 pm
+1001,7,Road Closure,0,101,10,5,Saturday,closed,Saturday,12:30 pm
+1201,8,Operations,1,121,10,5,Sunday,closed,Sunday,closed
