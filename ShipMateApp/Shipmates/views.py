@@ -14,11 +14,9 @@ import numpy as np
 import pathlib
 import glob
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import Ridge, LinearRegression
+from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-import chardet
 from datetime import datetime, timedelta
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import PolynomialFeatures, StandardScaler
 
 # Database configuration
@@ -131,7 +129,7 @@ def save_to_database(data):
         tracker = """
         INSERT INTO tracking (
             ship_lat, ship_lon, delivery_lat, delivery_lon, distance, id
-        ) VALUES (%s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s) RETURNING tracking_number
         """
 
         # Insert data into the shipping and delivery tables
@@ -149,6 +147,9 @@ def save_to_database(data):
         cursor.execute(tracker, (
             shiplat, shiplon, deliverylat, deliverylon, distance, result
         ))
+        tracking_number = cursor.fetchone()[0]
+        data["tracking_number"] = tracking_number
+        print(f"Tracking Number: {tracking_number}")
 
         conn.commit()
         cursor.close()
@@ -157,17 +158,6 @@ def save_to_database(data):
         print("Data saved to database successfully.")
     except Exception as e:
         print(f"Database error: {e}")
-
-# Function to save data to a binary file
-def save_to_binary_file(data, filename):
-    try:
-        # Open the binary file in write mode
-        with open(filename, 'wb') as file:
-            # Use pickle to serialize and write data to the file
-            pickle.dump(data, file)
-        print(f"Data has been written to {filename}")
-    except Exception as e:
-        print(f"Error saving data: {e}")
 
 # Function to generate a shipping label as a PDF
 def generate_shipping_label(data):
@@ -210,8 +200,7 @@ def generate_shipping_label(data):
     # Label barcode
     pdf.ln(10)
     pdf.set_font("Arial", size=20)
-    pdf.cell(200, 10, txt=f"TRK #", ln=True)
-    pdf.cell(100, 10, txt=f"      {data['predicted_days']}", ln=True)
+    pdf.cell(200, 10, txt=f"TRK # {data['tracking_number']}              {data['delivery_date']}", ln=True)
     pdf.ln(10)
     pdf.set_font("Arial", size=54)
     pdf.cell(200, 10, txt=f"1CESPA", ln=True)
@@ -270,9 +259,43 @@ def create():
         }])
         new_input_scaled = scaler.transform(new_input)
         new_input_poly = poly_features.transform(new_input_scaled)
-        data['predicted_days'] = ridge_model.predict(new_input_poly)[0]
+        data['predicted_days'] = ridge_model.predict(new_input_poly)[0]  # Predict delivery days
 
+        # Save data to the database
         save_to_database(data)
+
+        # Function to increase the date by a decimal number
+        def increase_date_by_decimal(decimal_days):
+            # Get the current date and time
+            current_date = datetime.now()
+    
+            # Calculate the number of days and seconds from the decimal number
+            days = int(decimal_days)  # Whole days
+            fractional_day = decimal_days - days  # Fractional part of a day
+            seconds = int(fractional_day * 24 * 60 * 60)  # Convert fractional day to seconds
+    
+            # Add the days and seconds to the current date
+            new_date = current_date + timedelta(days=days, seconds=seconds)
+            return new_date
+
+        # Calculate the delivery date
+        predicted_days = data['predicted_days']
+        data['delivery_date'] = increase_date_by_decimal(predicted_days)
+
+        # Print the results
+        print("Current Date:", datetime.now())
+        print(f"Predicted Delivery Date ({predicted_days} days later):", data['delivery_date'])
+
+        # Function to save data to a binary file
+        def save_to_binary_file(data, filename):
+            try:
+                # Open the binary file in write mode
+                with open(filename, 'wb') as file:
+                    # Use pickle to serialize and write data to the file
+                    pickle.dump(data, file)
+                print(f"Data has been written to {filename}")
+            except Exception as e:
+                print(f"Error saving data: {e}")
 
         # Save data to a binary file
         save_to_binary_file(data, 'shipment_data.dat')
